@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AI 视频生成工作流工具 — DevBot MVP</title>
+<style>
+:root{--ink:#141a2e;--accent:#6d5efc;--bg:#f5f6fc;--card:#fff;--line:#e3e5f0;--good:#16a34a;--warn:#d97706;--bad:#dc2626;--grad:linear-gradient(135deg,#6d5efc,#e94560)}
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;background:var(--bg);color:var(--ink);margin:0;padding:2rem;line-height:1.6}
+.container{max-width:1080px;margin:0 auto}
+h1{font-size:1.7rem;margin-bottom:.2rem;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.subtitle{color:#6b6b7b;margin-bottom:1.2rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.2rem;box-shadow:0 2px 12px rgba(20,26,46,.05);margin-bottom:1rem}
+label{display:block;font-weight:600;margin:.6rem 0 .25rem;font-size:.9rem}
+input,textarea,select{width:100%;padding:.6rem .75rem;border:1px solid var(--line);border-radius:8px;font-size:.95rem;font-family:inherit;background:#fff}
+button{background:var(--accent);color:#fff;border:0;padding:.6rem 1.15rem;border-radius:8px;font-weight:600;cursor:pointer;margin-top:.6rem;margin-right:.4rem}
+button:hover{opacity:.9}
+button.ghost{background:#eef0fb;color:var(--accent)}
+pre{background:#141a2e;color:#e8eaf6;padding:1rem;border-radius:8px;overflow:auto;font-size:.82rem;white-space:pre-wrap}
+.row{display:flex;gap:1rem;flex-wrap:wrap}
+.col{flex:1;min-width:280px}
+.metric{display:inline-block;margin-right:1.4rem}
+.metric .v{font-size:1.5rem;font-weight:700;color:var(--accent)}
+.pill{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.75rem;background:#eef0fb;color:var(--accent);margin-left:.4rem}
+.flow{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem}
+.node{flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:.7rem;background:#fbfbfe;cursor:pointer}
+.node.done{background:#eafaf0;border-color:#b7e6c8}
+.node .n{font-weight:700;font-size:.9rem}
+.node .d{font-size:.75rem;color:#6b6b7b}
+.node .t{font-size:.72rem;color:var(--accent);margin-top:.2rem}
+table{width:100%;border-collapse:collapse;font-size:.84rem;margin-top:.6rem}
+th,td{border-bottom:1px solid var(--line);padding:.45rem .4rem;text-align:left;vertical-align:top}
+th{color:#6b6b7b;font-weight:600}
+.tag{display:inline-block;padding:.15rem .45rem;border-radius:999px;background:#f5f6fc;border:1px solid var(--line);font-size:.78rem;margin-right:.25rem;margin-top:.25rem}
+.sb{border:1px solid var(--line);border-radius:10px;padding:.8rem;margin-top:.6rem;background:#fbfbfe}
+.sb h4{margin:.1rem 0 .4rem;font-size:.95rem}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🎬 AI 视频生成工作流工具</h1>
+<p class="subtitle">MVP · Node.js + Express + 原生 HTML/JS · 关联话题：「Claude code/Codex + Seedance AI视频：从一个想法到成片的全流程」（1.37M 曝光，11,893 点赞）· DevBot 开发</p>
+
+<div class="card">
+<p><strong>功能：</strong>7 阶段流水线（创意→脚本→分镜→视频→配音→剪辑→发布）+ 成本/耗时估算 + 分镜脚本自动生成 + 项目进度管理。</p>
+<p><strong>代码位置：</strong><code>products/ai-video-workflow/</code>（server.js + index.html + package.json）</p>
+<p><strong>状态：</strong>已完成（MVP）· 下一步：接入真实 Claude Code / Seedance API 与视频合成</p>
+</div>
+
+<div class="card">
+<h3>1. 生成工作流方案</h3>
+<label>创意主题</label>
+<input id="idea" placeholder="例如：用 AI 把一个想法做成 60 秒短视频" value="用 AI 做一条 60 秒产品演示短视频">
+<div class="row">
+<div class="col"><label>分镜数（2-20）</label><input id="scenes" type="number" value="8" min="2" max="20"></div>
+<div class="col"><label>成片时长（秒）</label><input id="duration" type="number" value="60" min="10" max="600"></div>
+<div class="col"><label>质量档位</label><select id="quality"><option value="draft">草稿 0.5x</option><option value="standard" selected>标准 1x</option><option value="high">高质 2.2x</option></select></div>
+</div>
+<button onclick="plan()">⚡ 生成方案</button>
+<button class="ghost" onclick="saveProject()">💾 保存为项目</button>
+<div id="planResult" style="margin-top:.8rem"></div>
+</div>
+
+<div class="card">
+<h3>2. 工作流阶段</h3>
+<p style="font-size:.86rem;color:#6b6b7b">点击节点可切换完成状态（项目保存后生效）。</p>
+<div class="flow" id="flow"></div>
+</div>
+
+<div class="card" id="sbCard" style="display:none">
+<h3>3. 分镜脚本</h3>
+<div id="storyboard"></div>
+</div>
+
+<div class="card">
+<h3>4. 项目列表</h3>
+<button class="ghost" onclick="loadProjects()">🔄 刷新</button>
+<table id="projects"><thead><tr><th>时间</th><th>创意</th><th>成本</th><th>耗时</th><th>进度</th><th></th></tr></thead><tbody></tbody></table>
+</div>
+
+<div><p>标签：<span class="tag">#AI视频</span><span class="tag">#Seedance</span><span class="tag">#ClaudeCode</span><span class="tag">#工作流</span><span class="tag">#DevBot</span></p></div>
+</div>
+<script>
+const API=location.origin;
+let current=null;
+async function plan(){
+  const idea=document.getElementById('idea').value;
+  const scenes=parseInt(document.getElementById('scenes').value);
+  const durationSec=parseInt(document.getElementById('duration').value);
+  const quality=document.getElementById('quality').value;
+  const r=await fetch(API+'/api/plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idea,scenes,durationSec,quality})});
+  const d=await r.json();
+  if(d.error){alert(d.error);return;}
+  current=d;
+  const e=d.estimate;
+  document.getElementById('planResult').innerHTML=
+    '<div class="metric"><span class="v">¥'+e.estimatedCost+'</span><br><small>预估成本</small></div>'+
+    '<div class="metric"><span class="v">'+e.estimatedMinutes+'</span><br><small>预估分钟</small></div>'+
+    '<div class="metric"><span class="v">'+e.estimatedHours+'h</span><br><small>预估小时</small></div>'+
+    '<div class="metric"><span class="v">'+e.scenes+'</span><br><small>分镜数</small></div>'+
+    '<div class="metric"><span class="v">'+e.quality+'</span><br><small>质量档</small></div>';
+  document.getElementById('flow').innerHTML=d.stages.map(s=>
+    '<div class="node" data-id="'+s.id+'">'+
+      '<div class="n">'+s.name+'</div>'+
+      '<div class="d">'+s.desc+'</div>'+
+      '<div class="t">'+s.tool+' · '+s.duration+'</div>'+
+      '<div class="d">输出：'+s.output+'</div>'+
+    '</div>').join('');
+  document.getElementById('sbCard').style.display='block';
+  document.getElementById('storyboard').innerHTML=d.storyboard.map(s=>
+    '<div class="sb"><h4>#'+s.no+' '+s.beat+' <span class="pill">'+s.shotType+' · '+s.durationSec+'s</span></h4>'+
+    '<div><strong>口播：</strong>'+s.voiceover+'</div>'+
+    '<div><strong>画面：</strong>'+s.visual+'</div>'+
+    '<pre>'+s.prompt+'</pre></div>').join('');
+}
+async function saveProject(){
+  const idea=document.getElementById('idea').value;
+  const scenes=parseInt(document.getElementById('scenes').value);
+  const durationSec=parseInt(document.getElementById('duration').value);
+  const quality=document.getElementById('quality').value;
+  const r=await fetch(API+'/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idea,scenes,durationSec,quality})});
+  current=await r.json();
+  await loadProjects();
+  await syncProgress();
+}
+async function syncProgress(){
+  if(!current||!current.id)return;
+  const r=await fetch(API+'/api/projects/'+current.id);
+  const p=await r.json();
+  p.progress.forEach(x=>{const el=document.querySelector('.node[data-id="'+x.id+'"]');if(el)el.classList.toggle('done',x.done);});
+}
+document.addEventListener('click',async e=>{
+  const n=e.target.closest('.node');
+  if(!n||!current||!current.id)return;
+  await fetch(API+'/api/projects/'+current.id+'/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stage:n.dataset.id})});
+  await syncProgress();
+  await loadProjects();
+});
+async function loadProjects(){
+  const r=await fetch(API+'/api/projects');
+  const d=await r.json();
+  document.querySelector('#projects tbody').innerHTML=d.map(p=>
+    '<tr><td>'+p.ts.slice(0,16).replace('T',' ')+'</td><td>'+p.idea+'</td>'+
+    '<td>¥'+p.cost+'</td><td>'+p.minutes+'min</td><td>'+p.done+'/'+p.total+'</td>'+
+    '<td><button class="ghost" onclick="openProject(\''+p.id+'\')">打开</button></td></tr>').join('');
+}
+async function openProject(id){
+  const r=await fetch(API+'/api/projects/'+id+'/export');
+  current=await r.json();
+  await plan();
+  await syncProgress();
+}
+loadProjects();
+</script>
+</body>
+</html>

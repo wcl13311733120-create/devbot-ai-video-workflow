@@ -1,0 +1,8 @@
+{
+  "name": "ai-video-workflow",
+  "version": "1.0.0",
+  "description": "AI 视频生成工作流工具 MVP — 7 阶段流水线 + 成本/耗时估算 + 分镜脚本生成 + 项目进度管理",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "express": "^4.19.2" }
+}
