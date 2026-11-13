@@ -1,0 +1,21 @@
+{
+  "name": "ai-video-workflow",
+  "version": "2.0.0",
+  "description": "AI 视频生成工作流工具 — 从想法到成片的 7 阶段流水线：创意→脚本→分镜→视频→配音→剪辑→发布",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "ai-video",
+    "workflow",
+    "storyboard",
+    "seedance",
+    "claude-code",
+    "content-creation"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.22.3"
+  }
+}

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 视频生成工作流 · 从想法到成片</title>
+<meta name="description" content="7 阶段 AI 视频流水线：创意→脚本→分镜→视频→配音→剪辑→发布，含成本耗时估算、分镜脚本生成与爆款自检。">
+<style>
+  :root{--bg:#0f1220;--card:#191d31;--card2:#212640;--line:#2d3350;--ink:#eef0fa;--muted:#9aa1c0;--accent:#7c6cff;--accent2:#f0457b;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--grad:linear-gradient(135deg,#7c6cff,#f0457b)}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans SC",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  .container{max-width:1120px;margin:0 auto;padding:20px 18px 60px}
+  header{background:var(--grad);border-radius:16px;padding:28px 24px;margin-bottom:18px}
+  header h1{margin:0 0 6px;font-size:26px}
+  header p{margin:0;opacity:.92;font-size:14px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;background:rgba(255,255,255,.2);margin-right:6px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+  .card h2{font-size:18px;margin:0 0 12px;color:#c9cfff}
+  .card h3{font-size:14px;margin:14px 0 6px;color:#a9b0d8}
+  .grid{display:grid;gap:12px}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#141830;color:var(--ink);font-size:14px;font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);border-color:transparent}
+  textarea{resize:vertical;min-height:70px}
+  .btn{padding:11px 20px;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;background:var(--accent);color:#fff;transition:.15s}
+  .btn:hover{filter:brightness(1.12)}
+  .btn.ghost{background:var(--card2);color:#c9cfff;border:1px solid var(--line)}
+  .btn.sm{padding:6px 12px;font-size:12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .metric{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .metric .v{font-size:24px;font-weight:700;color:#fff;display:block}
+  .metric .l{font-size:12px;color:var(--muted)}
+  .flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .node{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;transition:.15s;position:relative}
+  .node:hover{border-color:var(--accent)}
+  .node.done{background:rgba(34,197,94,.12);border-color:var(--good)}
+  .node.done::after{content:"✓";position:absolute;top:8px;right:10px;color:var(--good);font-weight:700}
+  .node .n{font-weight:700;font-size:14px}
+  .node .d{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .node .t{font-size:11.5px;color:#b0a6ff;margin-top:4px}
+  .sb{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+  .sb h4{margin:0 0 6px;font-size:14px}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;background:rgba(124,108,255,.18);color:#b0a6ff;margin-left:6px}
+  .pill.g{background:rgba(34,197,94,.16);color:#7ee2a8}
+  .pill.r{background:rgba(239,68,68,.16);color:#ff9c9c}
+  pre{background:#11152a;border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;font-size:12px;white-space:pre-wrap;word-break:break-word;margin:6px 0 0;color:#c8d0f5}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  .check{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .check .ico{width:20px;height:20px;border-radius:50%;flex:0 0 20px;text-align:center;line-height:20px;font-size:12px;font-weight:700}
+  .ok .ico{background:rgba(34,197,94,.2);color:#7ee2a8}
+  .no .ico{background:rgba(239,68,68,.2);color:#ff9c9c}
+  .check .tip{color:var(--muted);font-size:12px}
+  .bar{height:9px;background:#11152a;border-radius:999px;overflow:hidden;margin:6px 0 10px}
+  .bar>i{display:block;height:100%;background:var(--grad);border-radius:999px}
+  .tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;background:var(--card2);border:1px solid var(--line);margin:0 6px 6px 0}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .hidden{display:none!important}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .tab{padding:8px 16px;border-radius:9px;border:1px solid var(--line);background:var(--card2);color:#c9cfff;cursor:pointer;font-size:13px}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .projs td{font-size:13px}
+  .copybtn{background:#2a3157;color:#c9cfff;border:1px solid var(--line);border-radius:7px;padding:3px 9px;font-size:11px;cursor:pointer}
+  .copybtn:hover{border-color:var(--accent)}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:24px}
+  @media(max-width:640px){header h1{font-size:20px}.container{padding:14px 12px 40px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🎬 AI 视频生成工作流</h1>
+    <p>从想法到成片的 7 阶段流水线 · 成本/耗时估算 · 分镜脚本自动生成 · 爆款要素自检 · 多平台发布包</p>
+    <p style="margin-top:8px">
+      <span class="badge">Node.js + Express</span><span class="badge">零构建 HTML/JS</span>
+      <span class="badge">静态 Pages 可独立运行</span><span class="badge">DevBot</span>
+    </p>
+  </header>
+
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-tab="plan">① 方案生成</div>
+      <div class="tab" data-tab="flow">② 流水线</div>
+      <div class="tab" data-tab="sb">③ 分镜脚本</div>
+      <div class="tab" data-tab="publish">④ 发布包</div>
+      <div class="tab" data-tab="check">⑤ 自检</div>
+      <div class="tab" data-tab="projects">⑥ 项目</div>
+    </div>
+
+    <!-- 方案 -->
+    <section id="tab-plan">
+      <h2>生成工作流方案</h2>
+      <label>创意主题</label>
+      <input id="idea" value="用 AI 把一个想法做成 60 秒短视频" placeholder="例如：用 AI 做一条 60 秒产品演示短视频">
+      <div class="grid g4" style="margin-top:12px">
+        <div><label>目标平台</label><select id="platform"></select></div>
+        <div><label>分镜数（2-20）</label><input id="scenes" type="number" value="8" min="2" max="20"></div>
+        <div><label>成片时长（秒）</label><input id="duration" type="number" value="60" min="10" max="600"></div>
+        <div><label>质量档位</label><select id="quality"></select></div>
+      </div>
+      <div class="row">
+        <button class="btn" onclick="plan()">⚡ 生成方案</button>
+        <button class="btn ghost" onclick="saveProject()">💾 保存为项目</button>
+        <button class="btn ghost" onclick="exportPlan()">📤 导出 JSON</button>
+      </div>
+      <div id="planResult" style="margin-top:16px"></div>
+    </section>
+
+    <!-- 流水线 -->
+    <section id="tab-flow" class="hidden">
+      <h2>7 阶段工作流</h2>
+      <p class="hint">点击节点切换完成状态（保存项目后生效，可追踪进度）。</p>
+      <div class="flow" id="flow"></div>
+      <div id="stageDetail" style="margin-top:14px"></div>
+    </section>
+
+    <!-- 分镜 -->
+    <section id="tab-sb" class="hidden">
+      <h2>分镜脚本</h2>
+      <div id="hooks"></div>
+      <div id="storyboard"></div>
+    </section>
+
+    <!-- 发布包 -->
+    <section id="tab-publish" class="hidden">
+      <h2>多平台发布包</h2>
+      <div id="publishBox"></div>
+    </section>
+
+    <!-- 自检 -->
+    <section id="tab-check" class="hidden">
+      <h2>爆款要素自检</h2>
+      <div id="checkBox"></div>
+    </section>
+
+    <!-- 项目 -->
+    <section id="tab-projects" class="hidden">
+      <h2>项目列表</h2>
+      <div class="row" style="margin-top:0">
+        <button class="btn ghost sm" onclick="loadProjects()">🔄 刷新</button>
+        <span class="hint" id="projHint">仅服务器模式可持久化保存</span>
+      </div>
+      <table class="projs"><thead><tr><th>时间</th><th>创意</th><th>平台</th><th>成本</th><th>耗时</th><th>进度</th><th></th></tr></thead><tbody id="projBody"></tbody></table>
+    </section>
+  </div>
+
+  <footer>AI 视频生成工作流 · DevBot MVP · 数据保存在浏览器本地（静态模式）或服务器 JSON（Node 模式）</footer>
+</div>
+
+<script src="lib/workflow.js"></script>
+<script>
+const W = window.Workflow;
+let current = null;
+let projects = [];
+
+/* ---- tabs ---- */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('section[id^="tab-"]').forEach(x=>x.classList.add('hidden'));
+  t.classList.add('active');
+  document.getElementById('tab-'+t.dataset.tab).classList.remove('hidden');
+}));
+
+/* ---- init selects ---- */
+(function init(){
+  const pSel=document.getElementById('platform'), qSel=document.getElementById('quality');
+  W.PLATFORMS.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name+' · 建议'+p.defaultDur+'s';pSel.appendChild(o);});
+  Object.keys(W.QUALITY).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=W.QUALITY[k].label+' ('+W.QUALITY[k].mult+'x)';qSel.appendChild(o);});
+  qSel.value='standard';
+})();
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'''}[c]));}
+
+/* ---- 核心：生成方案 ---- */
+function plan(){
+  const idea=document.getElementById('idea').value.trim();
+  if(!idea){alert('请填写创意主题');return;}
+  const input={idea,scenes:+document.getElementById('scenes').value||8,
+    durationSec:+document.getElementById('duration').value||60,
+    platform:document.getElementById('platform').value,quality:document.getElementById('quality').value};
+  let d;
+  try{ d=W.buildPlan(input); }catch(e){alert(e.message);return;}
+  current=d;
+  renderPlan(d);
+}
+function renderPlan(d){
+  const e=d.estimate;
+  document.getElementById('planResult').innerHTML=
+    '<div class="grid g4">'+
+    '<div class="metric"><span class="v">¥'+e.estimatedCost+'</span><span class="l">预估成本</span></div>'+
+    '<div class="metric"><span class="v">'+e.estimatedMinutes+'</span><span class="l">预估耗时（分钟）</span></div>'+
+    '<div class="metric"><span class="v">'+e.estimatedHours+'h</span><span class="l">预估工时</span></div>'+
+    '<div class="metric"><span class="v">'+e.scenes+'</span><span class="l">分镜数 / '+e.durationSec+'s</span></div></div>'+
+    '<h3>成本构成</h3><table><thead><tr><th>项目</th><th>成本（¥）</th></tr></thead><tbody>'+
+    e.breakdown.map(b=>'<tr><td>'+esc(b.item)+'</td><td>'+b.cost+'</td></tr>').join('')+
+    '<tr><td><strong>合计（'+esc(e.platformName)+' ×'+e.qualityLabel+'）</strong></td><td><strong>'+e.estimatedCost+'</strong></td></tr></tbody></table>'+
+    '<p class="hint">人工耗时约 '+e.humanMinutes+' 分钟，机器渲染/排队约 '+e.machineMinutes+' 分钟（可并行）。</p>';
+  // flow
+  document.getElementById('flow').innerHTML=d.stages.map((s,i)=>
+    '<div class="node'+(current&&current.progress&&current.progress[i]&&current.progress[i].done?' done':'')+'" data-id="'+s.id+'" data-i="'+i+'">'+
+    '<div class="n">'+s.no+'</div>'+
+    '<div class="n">'+(i+1)+'. '+esc(s.name)+'</div>'+
+    '<div class="d">'+esc(s.desc)+'</div>'+
+    '<div class="t">'+esc(s.tool)+' · '+esc(s.duration)+'</div>'+
+    '<div class="d">产出：'+esc(s.output)+'</div></div>').join('');
+  // hooks
+  document.getElementById('hooks').innerHTML='<h3>开场钩子变体</h3>'+d.hooks.map(h=>
+    '<div class="sb"><h4>'+esc(h.type)+'</h4><div>'+esc(h.text)+'</div><p class="hint">'+esc(h.why)+'</p></div>').join('');
+  // storyboard
+  document.getElementById('storyboard').innerHTML=d.storyboard.map(s=>
+    '<div class="sb"><h4>#'+s.no+' '+esc(s.beat)+'<span class="pill">'+esc(s.shotType)+' · '+s.durationSec+'s</span></h4>'+
+    '<p class="hint">'+esc(s.guide)+'</p>'+
+    '<div><strong>口播：</strong>'+esc(s.voiceover)+'</div>'+
+    '<div><strong>画面：</strong>'+esc(s.visual)+'</div>'+
+    '<div style="margin-top:6px"><strong>字幕：</strong>'+esc(s.caption)+' &nbsp; <strong>音效：</strong>'+esc(s.sfx)+'</div>'+
+    '<pre>'+esc(s.prompt)+'</pre></div>').join('');
+  // publish
+  const p=d.publishPackage;
+  document.getElementById('publishBox').innerHTML=
+    '<div class="grid g4">'+
+    '<div class="metric"><span class="v">'+esc(p.platformName)+'</span><span class="l">目标平台</span></div>'+
+    '<div class="metric"><span class="v">'+esc(p.aspect)+'</span><span class="l">画幅</span></div>'+
+    '<div class="metric"><span class="v">'+p.recommendedDuration+'s</span><span class="l">建议时长</span></div>'+
+    '<div class="metric"><span class="v">'+esc(p.qualityLabel)+'</span><span class="l">质量档</span></div></div>'+
+    '<h3>标题候选</h3>'+p.titles.map((t,i)=>'<div class="sb"><div>'+esc(t)+'</div><button class="copybtn" onclick="copyText(this)">复制</button></div>').join('')+
+    '<h3>话题标签</h3><div>'+p.hashtags.map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div>'+
+    '<h3>简介</h3><pre>'+esc(p.description)+'</pre>'+
+    '<h3>封面文案</h3><pre>'+esc(p.coverText)+'</pre>'+
+    '<h3>发布检查清单</h3>'+p.publishChecklist.map(c=>'<div class="check ok"><span class="ico">✓</span><div>'+esc(c)+'</div></div>').join('')+
+    '<p class="hint">平台提示：'+esc(p.tip)+'</p>';
+  // check
+  const c=d.check;
+  document.getElementById('checkBox').innerHTML=
+    '<div class="metric" style="margin-bottom:12px"><span class="v">'+c.score+' 分</span><span class="l">通过 '+c.passed+'/'+c.total+' 项</span><div class="bar"><i style="width:'+c.score+'%"></i></div></div>'+
+    c.items.map(i=>'<div class="check '+(i.ok?'ok':'no')+'"><span class="ico">'+(i.ok?'✓':'!')+'</span><div><strong>'+esc(i.name)+'</strong><div class="tip">'+esc(i.tip)+'</div></div></div>').join('');
+  syncStageDetail();
+}
+function syncStageDetail(){
+  const el=document.getElementById('stageDetail');
+  if(!current){el.innerHTML='<p class="hint">请先生成方案。</p>';return;}
+  el.innerHTML='<table><thead><tr><th>阶段</th><th>工具</th><th>耗时</th><th>产出</th><th>状态</th></tr></thead><tbody>'+
+    current.stages.map((s,i)=>{
+      const done=current.progress&&current.progress[i]&&current.progress[i].done;
+      return '<tr><td>'+(i+1)+'. '+esc(s.name)+'</td><td>'+esc(s.tool)+'</td><td>'+esc(s.duration)+'</td><td>'+esc(s.output)+
+      '</td><td>'+(done?'<span class="pill g">已完成</span>':'<span class="pill">待办</span>')+'</td></tr>'}).join('')+'</tbody></table>';
+}
+
+/* ---- 节点点击切换 ---- */
+document.addEventListener('click',async e=>{
+  const n=e.target.closest('.node'); if(!n)return;
+  const i=+n.dataset.i;
+  if(current&&current.progress){current.progress[i].done=!current.progress[i].done;n.classList.toggle('done');syncStageDetail();}
+  if(current&&current.id){try{await fetch('/api/projects/'+current.id+'/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stage:n.dataset.id})});}catch(err){}}
+});
+
+/* ---- 保存项目 ---- */
+async function saveProject(){
+  const idea=document.getElementById('idea').value.trim();
+  const input={idea,scenes:+document.getElementById('scenes').value||8,
+    durationSec:+document.getElementById('duration').value||60,
+    platform:document.getElementById('platform').value,quality:document.getElementById('quality').value};
+  if(!idea){alert('请填写创意主题');return;}
+  let p=null;
+  try{
+    const r=await fetch('/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)});
+    if(!r.ok)throw new Error('server');
+    p=await r.json();
+  }catch(err){ saveLocal(input); }
+  if(!p){ // local fallback
+    const d=W.buildPlan(input);
+    current=d; current.id='local-'+Date.now(); current.progress=W.STAGES.map(s=>({id:s.id,done:false}));
+    renderPlan(current); alert('当前为静态模式，项目已保存在浏览器本地。'); return;
+  }
+  current=p; current.progress=p.progress||W.STAGES.map(s=>({id:s.id,done:false}));
+  renderPlan(current);
+  await loadProjects();
+}
+function saveLocal(input){
+  const d=W.buildPlan(input);
+  const rec={id:'local-'+Date.now(),ts:new Date().toISOString(),idea:input.idea,
+    platform:input.platform,scenes:input.scenes,durationSec:input.durationSec,quality:input.quality,
+    cost:d.estimate.estimatedCost,minutes:d.estimate.estimatedMinutes,
+    total:W.STAGES.length,done:0,plan:d};
+  let list=[]; try{list=JSON.parse(localStorage.getItem('avw_projects')||'[]');}catch(e){}
+  list.unshift(rec); try{localStorage.setItem('avw_projects',JSON.stringify(list.slice(0,50)));}catch(e){}
+  loadProjects();
+}
+async function loadProjects(){
+  let list=[];
+  try{
+    const r=await fetch('/api/projects');
+    if(r.ok){const d=await r.json(); if(Array.isArray(d)){list=d;document.getElementById('projHint').textContent='服务器模式：项目持久化在 JSON 文件中';}}
+  }catch(e){}
+  if(!list.length){
+    try{list=JSON.parse(localStorage.getItem('avw_projects')||'[]');}catch(e){}
+    if(list.length)document.getElementById('projHint').textContent='静态模式：项目保存在本浏览器 localStorage';
+  }
+  projects=list;
+  document.getElementById('projBody').innerHTML=list.map(p=>
+    '<tr><td>'+esc((p.ts||'').slice(0,16).replace('T',' '))+'</td><td>'+esc(p.idea)+'</td>'+
+    '<td>'+esc(p.platform||'-')+'</td><td>¥'+(p.cost!=null?p.cost:'—')+'</td><td>'+(p.minutes!=null?p.minutes+'min':'—')+'</td>'+
+    '<td>'+(p.done||0)+'/'+(p.total||W.STAGES.length)+'</td>'+
+    '<td><button class="copybtn" onclick="openProject(\''+p.id+'\')">打开</button></td></tr>').join('');
+}
+async function openProject(id){
+  try{
+    const r=await fetch('/api/projects/'+id);
+    if(r.ok){const p=await r.json();current=p;current.progress=p.progress||W.STAGES.map(s=>({id:s.id,done:false}));renderPlan(current);return;}
+  }catch(e){}
+  const rec=projects.find(x=>x.id===id);
+  if(rec&&rec.plan){current=rec.plan;current.id=rec.id;current.progress=W.STAGES.map(s=>({id:s.id,done:false}));renderPlan(current);}
+}
+function exportPlan(){
+  if(!current){alert('请先生成方案');return;}
+  const blob=new Blob([JSON.stringify(current,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='ai-video-plan-'+Date.now()+'.json';a.click();
+}
+function copyText(btn){
+  const t=btn.parentElement.firstElementChild.textContent;
+  navigator.clipboard.writeText(t).then(()=>{const o=btn.textContent;btn.textContent='已复制';setTimeout(()=>btn.textContent=o,1200);});
+}
+loadProjects();
+</script>
+</body>
+</html>
